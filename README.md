@@ -1,2 +1,5 @@
-# CV_on_Rover
-Computer Vision Application on a Martian Rover. Making a Hand Gesture controlled Rover(rocker-bogie mechanism). 
+# Face-Detection
+
+Package Required :
+1.) cvzone 1.4.1 (include opencv and numpy)
+2.) pyfirmata
