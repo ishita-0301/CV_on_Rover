@@ -135,11 +135,3 @@ ultralytics         # YOLOv5
 2. The face center pixel coordinates `(fx, fy)` are mapped to servo angles using `numpy.interp`.
 3. The angles are sent over USB serial to the Arduino via `pyfirmata`.
 4. The Arduino drives the two SG90 servos to physically aim the camera at the face.
-
-## Contributing
-
-Pull requests are welcome! For major changes, open an issue first.
-
-## License
-
-MIT
