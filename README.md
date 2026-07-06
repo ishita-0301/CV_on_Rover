@@ -1,4 +1,4 @@
-# CV on Rover — Real-Time Face Tracking Turret & YOLOv5 Object Detection on a Rocker-Bogie Rover
+# Computer Vision on Rover :  Real-Time Face Tracking Turret & YOLOv5 Object Detection on a Rocker-Bogie Rover
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green?logo=opencv)](https://opencv.org/)
