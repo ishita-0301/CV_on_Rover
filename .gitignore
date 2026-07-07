@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Model weights & datasets (large binaries – keep out of git)
+*.pt
+*.onnx
+*.engine
+datasets/
+runs/
+
+# YOLOv5 run outputs
+yolov5/runs/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
