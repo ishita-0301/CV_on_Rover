@@ -1,0 +1,14 @@
+# CV-on-Rover Python dependencies
+# -----------------------------------------------------------------------------
+
+# --- Vision & hardware (face detection / tracking) ---
+opencv-python>=4.5
+numpy
+cvzone>=1.4.1        # provides the MediaPipe-based FaceDetectionModule
+mediapipe
+pyfirmata            # Arduino serial via StandardFirmata
+
+# --- YOLOv5 classification pipeline ---
+# classification/{predict,train,val}.py import from the yolov5 git submodule.
+# After `git submodule update --init`, also install its requirements:
+#     pip install -r yolov5/requirements.txt
