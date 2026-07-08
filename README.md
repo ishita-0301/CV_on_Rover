@@ -17,7 +17,7 @@ A **Python + Arduino** project that mounts a **self-aiming, face-tracking camera
 
 ## Demo
 
-▶ **[Watch the face-tracking demo](docs/CVDemo.mp4)** — the pan-tilt turret locks onto and follows a face in real time.
+▶ **[Watch the face-tracking demo](docs/CVDemo.mp4)** 
 
 <video src="https://github.com/ishita-0301/CV_on_Rover/raw/main/docs/CVDemo.mp4" controls muted width="720"></video>
 
