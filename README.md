@@ -17,15 +17,16 @@ A **Python + Arduino** project that mounts a **self-aiming, face-tracking camera
 
 ## Demo
 
-<!--
-  ▶ To add a video: open this README in the GitHub web editor (or a new Issue),
-    drag-and-drop your .mp4/.mov (≤10 MB) into the text box, and GitHub uploads it
-    and inserts a link like:  https://github.com/user-attachments/assets/xxxxxxxx
-    Paste that bare URL on its own line below and it renders as an inline player.
-    (A committed .gif in doc/ also works: ![demo](docs/demo.gif))
--->
+▶ **[Watch the face-tracking demo](docs/CVDemo.mp4)** — the pan-tilt turret locks onto and follows a face in real time.
 
-<!-- paste your uploaded video URL on its own line here -->
+<video src="https://github.com/ishita-0301/CV_on_Rover/raw/main/docs/CVDemo.mp4" controls muted width="720"></video>
+
+<!--
+  The link above always works. For a guaranteed inline auto-playing player,
+  drag-and-drop docs/CVDemo.mp4 into the GitHub web README editor (or a new
+  Issue); GitHub returns a https://github.com/user-attachments/assets/… URL —
+  paste it on its own line here to render an embedded player.
+-->
 
 ```
 [No Target]                  [TARGET LOCKED]
