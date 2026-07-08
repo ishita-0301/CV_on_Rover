@@ -1,51 +1,31 @@
-# Computer Vision on Rover :  Real-Time Face Tracking Turret & YOLOv5 Object Detection on a Rocker-Bogie Rover
+# Computer Vision on Rover — Real-Time Face-Tracking Turret & YOLOv5 Classification on a Rocker-Bogie Rover
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green?logo=opencv)](https://opencv.org/)
-[![Arduino](https://img.shields.io/badge/Arduino-Compatible-teal?logo=arduino)](https://www.arduino.cc/)
+[![Arduino](https://img.shields.io/badge/Arduino-Uno-teal?logo=arduino)](https://www.arduino.cc/)
 [![YOLOv5](https://img.shields.io/badge/YOLOv5-Classification-orange)](https://github.com/ultralytics/yolov5)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-lightgrey)](THIRD_PARTY_NOTICES.md)
 
-A Python + Arduino project that mounts a **self-aiming face-tracking camera** on a **rocker-bogie Mars rover**. The camera pan-tilts in real time to lock onto detected faces using OpenCV and dual servo motors, while YOLOv5 handles on-board object classification.
+A **Python + Arduino** project that mounts a **self-aiming, face-tracking camera** on a **rocker-bogie rover**. A webcam detects faces in real time; the head physically pan-tilts on two servos to keep the face centered, while a separate motor-driver channel drives the six-wheel rocker-bogie chassis. An optional **YOLOv5** pipeline adds on-board image classification, training and validation.
 
-```
-Webcam Feed
-     │
-     ▼
-┌──────────────────────┐
-│  Face Detection       │  ← cvzone FaceDetectionModule (Haar + MediaPipe)
-│  (Real-Time, ~30fps) │
-└──────────┬───────────┘
-           │  face center (x, y)
-           ▼
-┌──────────────────────┐
-│  Coordinate Mapping  │  ← np.interp → servo angle [0°–180°]
-└──────────┬───────────┘
-           │  PWM signal
-           ▼
-┌──────────────────────┐
-│  Arduino (pyfirmata) │  ← USB serial to Arduino Uno
-│  Pin 9 → Servo X     │
-│  Pin 10 → Servo Y    │
-└──────────────────────┘
-           │
-           ▼
-      [ TARGET LOCKED ]
-      Pan-tilt head physically
-      moves to track the face
-```
+> **Two independent subsystems, one rover:**
+> 1. **Vision + turret** — OpenCV / cvzone face detection → servo pan-tilt (`vision/`, `hardware/pan_tilt_servo/`)
+> 2. **Locomotion** — serial-driven L298N rocker-bogie drive (`hardware/rover_drive/`)
+> 3. **Classification (optional)** — YOLOv5 predict / train / val (`classification/`, `yolov5/` submodule)
 
-## Features
-
-| Feature | Details |
-|---|---|
-| **Face Tracking** | Real-time pan-tilt via 2 servo motors on an Arduino |
-| **Face Detection** | Haar Cascade (`facedetection.py`) + cvzone MediaPipe model (`facetracking.py`) |
-| **Object Classification** | YOLOv5 inference on webcam/video/image streams (`predict.py`) |
-| **Hardware** | Arduino Uno, 2× SG90 servos, rocker-bogie rover chassis |
-| **Training Pipeline** | `train.py` + `val.py` for custom YOLOv5 classification models |
+---
 
 ## Demo
+
+<!--
+  ▶ To add a video: open this README in the GitHub web editor (or a new Issue),
+    drag-and-drop your .mp4/.mov (≤10 MB) into the text box, and GitHub uploads it
+    and inserts a link like:  https://github.com/user-attachments/assets/xxxxxxxx
+    Paste that bare URL on its own line below and it renders as an inline player.
+    (A committed .gif in doc/ also works: ![demo](docs/demo.gif))
+-->
+
+<!-- paste your uploaded video URL on its own line here -->
 
 ```
 [No Target]                  [TARGET LOCKED]
@@ -53,85 +33,229 @@ Webcam Feed
   ·  (      )  ·                ·  ( ◎  )  ·
   ·  ·     ·  ·     →           ·  · ─── · ·
   │                              │  Servo X: 112°
-  │                              │  Servo Y: 98°
+  │                              │  Servo Y:  98°
 ```
 
-The crosshair physically follows the detected face at ~30fps.
+The crosshair physically follows the detected face at ~30 fps.
 
-## Hardware Setup
+---
 
-- Arduino Uno (connected via USB)
-- 2× SG90 servo motors
-  - Servo X (horizontal pan) → Arduino **pin 9**
-  - Servo Y (vertical tilt) → Arduino **pin 10**
-- Any USB webcam
+## How It Works
 
-See [`wiring schematic.jpg`](wiring%20schematic.jpg) for the full wiring diagram.
-
-## Installation
-
-```bash
-git clone https://github.com/ishita-0301/CV_on_Rover.git
-cd CV_on_Rover
-pip install cvzone pyfirmata torch torchvision ultralytics
+```
+        Webcam Feed
+             │
+             ▼
+   ┌────────────────────────┐
+   │  Face Detection        │  ← cvzone FaceDetectionModule (MediaPipe)
+   │  (real-time, ~30 fps)  │     or OpenCV Haar cascade
+   └───────────┬────────────┘
+               │  face center (fx, fy)
+               ▼
+   ┌────────────────────────┐
+   │  Coordinate Mapping    │  ← np.interp → servo angle [0°–180°]
+   └───────────┬────────────┘
+               │  angles (X, Y)
+               ▼
+   ┌────────────────────────┐
+   │  Arduino Uno           │  ← USB serial (pyfirmata / native sketch)
+   │  D9  → Servo X (pan)   │
+   │  D10 → Servo Y (tilt)  │
+   └───────────┬────────────┘
+               │
+               ▼
+        [ TARGET LOCKED ] — pan-tilt head aims the camera at the face
 ```
 
-## Usage
+1. Each webcam frame is passed to the face detector.
+2. The face-center pixel coordinates `(fx, fy)` are mapped to servo angles with `numpy.interp`.
+3. The angles are streamed over USB serial to the Arduino.
+4. The Arduino drives the two servos to physically aim the camera; the rover chassis is driven independently over the same serial link.
 
-### Face Detection (no hardware needed)
-```bash
-python facedetection.py
-```
-Opens your webcam and draws bounding boxes around detected faces.
+---
 
-### Face Tracking with Arduino Servos
-```bash
-# Edit facetracking.py line 12: port = "COM7"  ← change to your Arduino port
-python facetracking.py
-```
+## Features
 
-### YOLOv5 Object Classification
-```bash
-# Webcam
-python predict.py --weights yolov5s-cls.pt --source 0
+| Feature | Details | Code |
+|---|---|---|
+| **Face Detection** | OpenCV Haar cascade, no extra hardware needed | `vision/facedetection.py` |
+| **Face Tracking** | Real-time pan-tilt via 2 servos, cvzone/MediaPipe detector | `vision/facetracking.py` |
+| **Pan-Tilt Firmware** | Native serial servo sketch (Firmata alternative) | `hardware/pan_tilt_servo/` |
+| **Rover Locomotion** | L298N differential drive for a 6-wheel rocker-bogie | `hardware/rover_drive/` |
+| **Object Classification** | YOLOv5 inference on webcam / image / video / stream | `classification/predict.py` |
+| **Training Pipeline** | Train & validate custom YOLOv5 classifiers | `classification/train.py`, `val.py` |
+| **Shared Config** | One place for camera index, serial port & servo pins | `vision/config.py` |
 
-# Image
-python predict.py --weights yolov5s-cls.pt --source img.jpg
-```
+---
 
-### Train a Custom Classifier
-```bash
-python train.py --data your_dataset.yaml --epochs 50
-python val.py   --weights runs/train/exp/weights/best.pt
-```
-
-## Project Structure
+## Repository Structure
 
 ```
 CV_on_Rover/
-├── facedetection.py          # Haar Cascade face detection (OpenCV only)
-├── facetracking.py           # Real-time face tracking → Arduino servo control
-├── predict.py                # YOLOv5 classification inference
-├── train.py                  # YOLOv5 model training
-├── val.py                    # YOLOv5 model validation
-├── tutorial.ipynb            # Step-by-step tutorial notebook
-├── haarcascade_frontalface_default.xml
-└── wiring schematic.jpg      # Arduino + servo wiring diagram
+├── vision/
+│   ├── facedetection.py          # Haar-cascade face detection (OpenCV only)
+│   ├── facetracking.py           # Real-time tracking → Arduino servos (pyfirmata)
+│   └── config.py                 # Camera / serial-port / servo-pin settings
+├── classification/
+│   ├── predict.py                # YOLOv5 classification inference
+│   ├── train.py                  # YOLOv5 classifier training
+│   └── val.py                    # YOLOv5 classifier validation
+├── yolov5/                       # Ultralytics YOLOv5 (git submodule)
+├── hardware/
+│   ├── pan_tilt_servo/           # Native serial servo sketch (.ino)
+│   ├── rover_drive/              # L298N rocker-bogie drive sketch (.ino)
+│   └── firmata/                  # StandardFirmata upload notes
+├── models/
+│   └── haarcascade_frontalface_default.xml
+├── notebooks/
+│   └── tutorial.ipynb            # YOLOv5 classification walkthrough
+├── docs/
+│   └── wiring_schematic.jpg      # Arduino + servo + motor wiring diagram
+├── scripts/
+│   ├── setup.sh                  # Init submodule + install dependencies
+│   └── run_classify.sh           # Convenience wrapper for inference
+├── requirements.txt
+└── THIRD_PARTY_NOTICES.md        # YOLOv5 (AGPL-3.0), OpenCV, cvzone licenses
 ```
+
+---
+
+## Hardware Setup
+
+| Component | Connection |
+|---|---|
+| Arduino Uno | USB to host PC |
+| USB webcam | any UVC webcam |
+| Servo X (pan) | signal → **D9** |
+| Servo Y (tilt) | signal → **D10** |
+| Servos power | external **5 V** supply + common ground (don't power two servos from the Arduino 5 V pin) |
+
+**Rocker-bogie drive (L298N)** — the six wheels are ganged into a left and a right bank and driven differentially:
+
+| L298N pin | Arduino | Purpose |
+|---|---|---|
+| ENA | **D5** (PWM) | left-bank speed |
+| IN1 / IN2 | **D7 / D8** | left-bank direction |
+| ENB | **D6** (PWM) | right-bank speed |
+| IN3 / IN4 | **D9 / D10** | right-bank direction |
+| 12V / GND | battery | motor supply + common ground |
+
+> ℹ️ The pan-tilt servos and the rover drive both reference D9/D10 in their default sketches — run them on **separate Arduinos**, or remap the pins in the sketch, if you use both at once.
+
+See [`docs/wiring_schematic.jpg`](docs/wiring_schematic.jpg) for the full diagram.
+
+---
+
+## Installation
+
+Clone **with submodules** (YOLOv5 lives in the `yolov5/` submodule):
+
+```bash
+git clone --recurse-submodules https://github.com/ishita-0301/CV_on_Rover.git
+cd CV_on_Rover
+```
+
+Already cloned without `--recurse-submodules`? Pull it in:
+
+```bash
+git submodule update --init --recursive
+```
+
+Install dependencies (one step):
+
+```bash
+bash scripts/setup.sh          # inits submodule + installs both requirement sets
+```
+
+…or manually:
+
+```bash
+pip install -r requirements.txt
+pip install -r yolov5/requirements.txt   # only needed for the classification pipeline
+```
+
+---
+
+## Usage
+
+Before running the hardware scripts, set your board in [`vision/config.py`](vision/config.py):
+
+```python
+ARDUINO_PORT = "COM7"     # Windows, or "/dev/ttyUSB0" on Linux/Mac
+CAMERA_INDEX = 0
+SERVO_PIN_X  = 9
+SERVO_PIN_Y  = 10
+```
+
+### 1. Face Detection (no hardware needed)
+```bash
+python vision/facedetection.py
+```
+Opens the webcam and draws boxes around detected faces. Press **q** to quit.
+
+### 2. Face Tracking with servos
+Upload **StandardFirmata** to the Arduino (see [`hardware/firmata/StandardFirmata_note.md`](hardware/firmata/StandardFirmata_note.md)), then:
+```bash
+python vision/facetracking.py
+```
+Prefer a custom firmware? Flash [`hardware/pan_tilt_servo/pan_tilt_servo.ino`](hardware/pan_tilt_servo/pan_tilt_servo.ino) and send `"<x>,<y>\n"` serial commands instead.
+
+### 3. Rover locomotion
+Flash [`hardware/rover_drive/rover_drive.ino`](hardware/rover_drive/rover_drive.ino), then drive it with single-character serial commands at 9600 baud:
+
+| Command | Action |
+|---|---|
+| `F` / `B` | forward / backward |
+| `L` / `R` | pivot left / right |
+| `S` | stop |
+| `V<0-255>` | set speed, e.g. `V180` |
+
+### 4. YOLOv5 Object Classification
+```bash
+# via the wrapper
+scripts/run_classify.sh --weights yolov5s-cls.pt --source 0        # webcam
+scripts/run_classify.sh --weights yolov5s-cls.pt --source img.jpg  # image
+
+# or directly
+python classification/predict.py --weights yolov5s-cls.pt --source 0
+```
+
+### 5. Train / validate a custom classifier
+```bash
+python classification/train.py --model yolov5s-cls.pt --data imagenette160 --epochs 50 --img 224
+python classification/val.py   --weights runs/train-cls/exp/weights/best.pt --data imagenette160
+```
+
+A step-by-step walkthrough is in [`notebooks/tutorial.ipynb`](notebooks/tutorial.ipynb).
+
+---
 
 ## Requirements
 
 ```
-cvzone>=1.4.1       # includes opencv-python and mediapipe
-pyfirmata           # Arduino serial communication
-torch
-torchvision
-ultralytics         # YOLOv5
+opencv-python>=4.5     # image capture & Haar detection
+numpy                  # coordinate mapping
+cvzone>=1.4.1          # MediaPipe FaceDetectionModule
+mediapipe
+pyfirmata              # Arduino serial (StandardFirmata)
+# classification only:
+torch, torchvision, and the rest of yolov5/requirements.txt
 ```
 
-## How It Works
+---
 
-1. Each video frame is passed to the face detector.
-2. The face center pixel coordinates `(fx, fy)` are mapped to servo angles using `numpy.interp`.
-3. The angles are sent over USB serial to the Arduino via `pyfirmata`.
-4. The Arduino drives the two SG90 servos to physically aim the camera at the face.
+## Licenses & Attribution
+
+This repo bundles third-party components — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+- **Ultralytics YOLOv5** (`yolov5/` submodule + `classification/*.py`) — **AGPL-3.0**. Because AGPL is copyleft, any distribution or network use that includes these files must comply with AGPL-3.0.
+- **OpenCV Haar cascade** (`models/`) — BSD-3-Clause.
+- **cvzone** `FaceDetectionModule` — MIT.
+
+The original vision and hardware code in this repository was written for this project.
+
+## Acknowledgements
+
+- [Ultralytics YOLOv5](https://github.com/ultralytics/yolov5) — classification pipeline
+- [cvzone](https://github.com/cvzone/cvzone) — MediaPipe face-detection wrapper
+- [OpenCV](https://opencv.org/) — Haar cascades and video I/O
