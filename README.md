@@ -26,15 +26,16 @@ what the rover sees, in real time.
 
 ## Gesture controls
 
-The controller counts how many fingers you hold up:
+The controller reads your hand pose (the image is mirrored, so lean toward the
+screen's side you want to turn):
 
 | Gesture | Command | Rover action |
 |---|---|---|
-| ☝️ 1 finger | `F` | forward |
-| ✌️ 2 fingers | `B` | backward |
-| 🤟 3 fingers | `L` | turn left |
-| 🖖 4 fingers | `R` | turn right |
-| ✊ fist / 🖐️ open palm / no hand | `S` | stop |
+| 🖐️ open palm, upright | `F` | forward |
+| ✊ closed fist, upright | `B` | backward |
+| 👉 hand leaning right | `R` | turn right |
+| 👈 hand leaning left | `L` | turn left |
+| ✋ no hand | `S` | stop |
 
 ---
 

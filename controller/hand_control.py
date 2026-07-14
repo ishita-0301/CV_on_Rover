@@ -1,14 +1,18 @@
 """Hand-gesture drive control (controller side).
 
-Uses MediaPipe Hands to count how many fingers the operator is holding up and
-maps that to a single-character drive command, which is streamed to the rover
-Pi over TCP. Run this on the controller Pi with a camera pointed at your hand.
+Uses MediaPipe Hands to read the operator's hand pose and maps it to a single-
+character drive command, which is streamed to the rover Pi over TCP. Run this on
+the controller Pi with a camera pointed at your hand.
 
-    1 finger  -> F (forward)     3 fingers -> L (left)
-    2 fingers -> B (backward)    4 fingers -> R (right)
-    fist / open palm / no hand -> S (stop)
+    open palm  (upright)  -> F (forward)     hand leaning right -> R (turn right)
+    closed fist(upright)  -> B (backward)    hand leaning left  -> L (turn left)
+    no hand -> S (stop)
+
+The image is mirrored, so leaning your hand toward the screen's right turns
+right and toward the left turns left.
 """
 
+import math
 import socket
 import time
 
@@ -20,30 +24,38 @@ import config
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
 
-# Landmark ids of the four finger tips and the thumb tip (MediaPipe Hands).
+# MediaPipe Hands landmark ids: finger tips and their PIP joints.
 FINGER_TIPS = [8, 12, 16, 20]
-THUMB_TIP = 4
+FINGER_PIPS = [6, 10, 14, 18]
+WRIST = 0
+MIDDLE_MCP = 9   # base of the middle finger
 
 
-def count_fingers(hand_landmarks, handedness_label):
+def extended_finger_count(lm):
+    """How many of the four fingers are extended (tip above its PIP joint)."""
+    return sum(1 for tip, pip in zip(FINGER_TIPS, FINGER_PIPS)
+               if lm[tip].y < lm[pip].y)
+
+
+def recognize_command(hand_landmarks):
+    """Map a hand pose to a drive command (F/B/L/R)."""
     lm = hand_landmarks.landmark
-    fingers = 0
 
-    # Four fingers: a finger is "up" when its tip is above (smaller y) the PIP
-    # joint two landmarks below it.
-    for tip in FINGER_TIPS:
-        if lm[tip].y < lm[tip - 2].y:
-            fingers += 1
+    # Pointing direction of the hand: wrist -> base of the middle finger.
+    dx = lm[MIDDLE_MCP].x - lm[WRIST].x
+    dy = lm[MIDDLE_MCP].y - lm[WRIST].y      # image y grows downward
+    angle = math.degrees(math.atan2(-dy, dx))  # 90 = up, 0 = right, +/-180 = left
 
-    # Thumb: compare x against the IP joint; direction depends on which hand.
-    if handedness_label == "Right":
-        if lm[THUMB_TIP].x < lm[THUMB_TIP - 1].x:
-            fingers += 1
-    else:
-        if lm[THUMB_TIP].x > lm[THUMB_TIP - 1].x:
-            fingers += 1
+    # A clear sideways lean is a turn, regardless of open/closed.
+    if abs(angle) <= config.TURN_ANGLE:
+        return "R"                            # leaning right  -> turn right
+    if abs(angle) >= 180 - config.TURN_ANGLE:
+        return "L"                            # leaning left   -> turn left
 
-    return fingers
+    # Roughly upright: open palm drives forward, closed fist reverses.
+    if extended_finger_count(lm) >= config.OPEN_FINGERS_MIN:
+        return "F"
+    return "B"
 
 
 def connect_to_rover():
@@ -74,11 +86,11 @@ def main():
             command = "S"  # default: no hand -> stop
             if result.multi_hand_landmarks:
                 hand = result.multi_hand_landmarks[0]
-                label = result.multi_handedness[0].classification[0].label
-                fingers = count_fingers(hand, label)
-                command = config.GESTURE_COMMANDS.get(fingers, "S")
+                command = recognize_command(hand)
                 mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
-                cv2.putText(frame, f"{fingers} fingers -> {command}", (10, 40),
+                labels = {"F": "FORWARD", "B": "BACKWARD",
+                          "L": "TURN LEFT", "R": "TURN RIGHT", "S": "STOP"}
+                cv2.putText(frame, f"{command} - {labels[command]}", (10, 40),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             else:
                 cv2.putText(frame, "no hand -> STOP", (10, 40),

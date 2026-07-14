@@ -15,14 +15,13 @@ CAMERA_INDEX = 0
 FRAME_WIDTH  = 640
 FRAME_HEIGHT = 480
 
-# --- Gesture -> command mapping --------------------------------------------
-# Number of raised fingers -> single-character drive command.
-GESTURE_COMMANDS = {
-    1: "F",   # 1 finger  -> forward
-    2: "B",   # 2 fingers -> backward
-    3: "L",   # 3 fingers -> turn left
-    4: "R",   # 4 fingers -> turn right
-    0: "S",   # fist      -> stop
-    5: "S",   # open palm -> stop
-}
-SEND_INTERVAL = 0.1   # seconds between command sends (10 Hz)
+# --- Gesture recognition ---------------------------------------------------
+# Hand pose -> single-character drive command:
+#   open palm, upright   -> F (forward)
+#   closed fist, upright -> B (backward)
+#   hand leaning right   -> R (turn right)
+#   hand leaning left    -> L (turn left)
+#   no hand              -> S (stop)
+TURN_ANGLE = 45        # a lean within this many degrees of horizontal = a turn
+OPEN_FINGERS_MIN = 3   # >= this many extended fingers counts as an open palm
+SEND_INTERVAL = 0.1    # seconds between command sends (10 Hz)
