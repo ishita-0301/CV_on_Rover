@@ -1,14 +1,20 @@
-# CV-on-Rover Python dependencies
-# -----------------------------------------------------------------------------
+# CV_on_Rover — Python dependencies
+# ---------------------------------------------------------------------------
+# The project spans two Raspberry Pis. Install the set you need on each Pi.
 
-# --- Vision & hardware (face detection / tracking) ---
+# --- Controller Pi (hand gestures + video viewer) ---
 opencv-python>=4.5
 numpy
-cvzone>=1.4.1        # provides the MediaPipe-based FaceDetectionModule
 mediapipe
-pyfirmata            # Arduino serial via StandardFirmata
 
-# --- YOLOv5 classification pipeline ---
-# classification/{predict,train,val}.py import from the yolov5 git submodule.
-# After `git submodule update --init`, also install its requirements:
+# --- Rover Pi (motors + camera stream) ---
+# opencv-python and numpy (above), plus Pi-only packages. On Raspberry Pi OS
+# the camera stack is best installed via apt, not pip:
+#     sudo apt install python3-picamera2
+gpiozero
+
+# --- experiments/ (learning only, optional) ---
+cvzone>=1.4.1      # MediaPipe FaceDetector used by experiments/face_tracking.py
+# YOLOv5 image classification also needs the yolov5/ submodule requirements:
+#     git submodule update --init --recursive
 #     pip install -r yolov5/requirements.txt

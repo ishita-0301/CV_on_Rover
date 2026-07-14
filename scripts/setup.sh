@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# One-time project setup: pull the YOLOv5 submodule and install dependencies.
+# Project setup: install Python dependencies. Pass --experiments to also pull
+# the YOLOv5 submodule used by the learning scripts in experiments/.
 set -e
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-echo ">> Initializing the YOLOv5 submodule..."
-git submodule update --init --recursive
-
 echo ">> Installing project requirements..."
 pip install -r requirements.txt
 
-echo ">> Installing YOLOv5 requirements..."
-pip install -r yolov5/requirements.txt
+if [ "$1" = "--experiments" ]; then
+  echo ">> Initializing the YOLOv5 submodule (experiments/classification)..."
+  git submodule update --init --recursive
+  pip install -r yolov5/requirements.txt
+fi
 
-echo ">> Done. Try:  python vision/facedetection.py"
+echo ">> Done."
+echo "   Rover Pi:       python rover/main.py"
+echo "   Controller Pi:  python controller/main.py   (set ROVER_HOST in controller/config.py first)"
